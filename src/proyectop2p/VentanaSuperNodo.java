@@ -51,7 +51,7 @@ public class VentanaSuperNodo extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setBackground(new java.awt.Color(0, 0, 0));
         setResizable(false);
-        setSize(new java.awt.Dimension(650, 350));
+        setSize(new java.awt.Dimension(850, 350));
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 formWindowClosing(evt);
@@ -132,7 +132,7 @@ public class VentanaSuperNodo extends javax.swing.JFrame {
         
         jScrollPane15.setAutoscrolls(true);
         getContentPane().add(jScrollPane15);
-        jScrollPane15.setBounds(498, 80, 100, 200);
+        jScrollPane15.setBounds(498, 80, 300, 200);
 
         Archivos.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
         Archivos.setFont(new java.awt.Font("Franklin Gothic Medium", 2, 12)); // NOI18N

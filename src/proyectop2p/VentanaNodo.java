@@ -7,6 +7,10 @@ package proyectop2p;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowEvent;
+import java.rmi.RemoteException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JLabel;
 
 /**
@@ -37,7 +41,7 @@ public class VentanaNodo extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
-        HistorialLabel = new javax.swing.JLabel();
+        MensajeLabel = new javax.swing.JLabel();
         NombreText = new javax.swing.JTextField();
         EnviarButton = new javax.swing.JButton();
 
@@ -50,7 +54,7 @@ public class VentanaNodo extends javax.swing.JFrame {
                 formWindowClosing(evt);
             }
 
-            private void formWindowClosing(WindowEvent evt) {
+            private void formWindowClosing(WindowEvent evt) {                
                 System.exit(0);
             }
         });
@@ -75,43 +79,53 @@ public class VentanaNodo extends javax.swing.JFrame {
         getContentPane().add(jLabel2);
         jLabel2.setBounds(18, 100, 100, 50);
 
-        HistorialLabel.setText("Servidor listo");
-        HistorialLabel.setVerticalAlignment(JLabel.TOP);
-        HistorialLabel.setAutoscrolls(true);
-        getContentPane().add(HistorialLabel);
-        HistorialLabel.setBounds(18, 160, 250, 400);
-        HistorialLabel.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
-        
+        MensajeLabel.setVerticalAlignment(JLabel.TOP);
+        MensajeLabel.setAutoscrolls(true);
+        getContentPane().add(MensajeLabel);
+        MensajeLabel.setBounds(18, 160, 250, 400);
+        MensajeLabel.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
+
         jLabel3.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         jLabel3.setText("Buscar");
         getContentPane().add(jLabel3);
         jLabel3.setBounds(330, 100, 100, 50);
-        
+
         getContentPane().add(NombreText);
         NombreText.setBounds(300, 160, 100, 50);
 
         getContentPane().add(EnviarButton);
         EnviarButton.setBounds(300, 220, 100, 20);
 
-        Actualiza_ventana act = new Actualiza_ventana(null,this);
+        Actualiza_ventana act = new Actualiza_ventana(null, this);
         new Thread(act).start();
     }// </editor-fold>//GEN-END:initComponents
 
     private void EnviarButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_EnviarButtonActionPerformed
+        String nombre_buscar = NombreText.getText();
 
+        List<Integer> ubicaciones = nodo.buscar(nombre_buscar);
+        
+        if (ubicaciones.isEmpty()) {
+            escribir_texto("No se encontró el archivo");
+        } else {
+            escribir_texto("Si se encontró en " + ubicaciones);
+            descargar(nombre_buscar, ubicaciones);
+        }
     }
 
     private void escribir_texto(String mensaje) {
-
+        nodo.mensaje.mensaje += "<br/><br/>" + mensaje;
     }
 
-    private void descargar(String nombre) {
-
+    private void descargar(String nombre, List<Integer> ubicaciones) {
+        Cliente_de_flujo cliente_de_flujo = new Cliente_de_flujo(nodo, ubicaciones, nombre, nodo.ObtenerDirectorio());
+        new Thread(cliente_de_flujo).start();
+        escribir_texto(nombre + " descargado con exito<br/>");
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     public javax.swing.JButton EnviarButton;
-    public javax.swing.JLabel HistorialLabel;
+    public javax.swing.JLabel MensajeLabel;
     public javax.swing.JTextField NombreText;
     public javax.swing.JLabel jLabel1;
     public javax.swing.JLabel jLabel2;

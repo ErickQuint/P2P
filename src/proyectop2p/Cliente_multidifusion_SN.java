@@ -5,6 +5,7 @@
  */
 package proyectop2p;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -15,10 +16,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import javax.swing.DefaultListModel;
+import java.util.Objects;
 
 /**
  *
@@ -26,15 +28,23 @@ import javax.swing.DefaultListModel;
  */
 public class Cliente_multidifusion_SN implements Runnable {
 
-    static private List<String> ListaConectados;
-    static private List<Integer> ListaPuertos;
-    static private List<String> ListaTiempos;
+    static private List<String> ListaConectadosSN;
+    List<Integer> ListaPuertosSN;
+    static private List<String> ListaTiemposSN;
+    static private List<String> ListaConectadosN;
+    List<Integer> ListaPuertosN;
+    static private List<String> ListaTiemposN;
+    FuncionesRMI stub;
+    Registry registry;
     SuperNodo sn;
 
     public Cliente_multidifusion_SN(SuperNodo sn) {
-        ListaConectados = new ArrayList<>();
-        ListaTiempos = new ArrayList<>();
-        ListaPuertos = new ArrayList<>();
+        ListaConectadosSN = new ArrayList<>();
+        ListaTiemposSN = new ArrayList<>();
+        ListaPuertosSN = new ArrayList<>();
+        ListaConectadosN = new ArrayList<>();
+        ListaTiemposN = new ArrayList<>();
+        ListaPuertosN = new ArrayList<>();
         this.sn = sn;
     }
 
@@ -59,10 +69,11 @@ public class Cliente_multidifusion_SN implements Runnable {
 
             s.register(sel, SelectionKey.OP_READ);
 
-            ByteBuffer b = ByteBuffer.allocate(100);
-
+            ByteBuffer b = ByteBuffer.allocate(11);
+            byte[] bytes;
             Tiempo t[] = new Tiempo[100];
-            int i = 0;
+            Tiempo t2[] = new Tiempo[100];
+            int i = 0, j = 0;
 
             while (true) {
                 sel.select();
@@ -73,57 +84,122 @@ public class Cliente_multidifusion_SN implements Runnable {
 
                     if (k.isReadable()) {
                         DatagramChannel ch = (DatagramChannel) k.channel();
-                        b.clear();
 
                         SocketAddress emisor = ch.receive(b);
+                        InetSocketAddress d = (InetSocketAddress) emisor;
+                        b.clear();
+                        bytes = new byte[b.limit()];
+                        b.get(bytes, 0, b.limit());
                         b.flip();
 
-                        InetSocketAddress d = (InetSocketAddress) emisor;
+                        String[] datos = new String(bytes).split(" ");
+                        int puerto = Integer.parseInt(datos[0].trim());
+                        String opc = datos[1].trim();
 
-                        int puerto = b.getInt();
+                        if (opc.contains("S")) {
+                            opc = "S";
+                        }
+
                         String info = d.getHostString() + ":" + puerto;
 
-                        if (ListaConectados.isEmpty() && puerto != sn.mio.getPuerto()) {
-                            ListaConectados.add(info);
-                            ListaPuertos.add(puerto);
+                        if (opc.equals("S")) {
+                            int tpo = 30;
 
-                            t[i] = new Tiempo();
-                            ListaTiempos.add(String.valueOf(t[i].getTiempo()));
+                            if (!ListaPuertosSN.contains(puerto) && puerto != sn.mio.getPuerto()) {
+                                ListaConectadosSN.add(info);
+                                ListaPuertosSN.add(puerto);
 
-                            Thread h = new Thread(t[i]);
-                            h.start();
-                            i++;
-                        } else if (!ListaPuertos.contains(puerto) && puerto != sn.mio.getPuerto()) {
-                            ListaConectados.add(info);
-                            ListaPuertos.add(puerto);
+                                t[i] = new Tiempo(tpo);
 
-                            t[i] = new Tiempo();
+                                ListaTiemposSN.add(String.valueOf(t[i].getTiempo()));
 
-                            ListaTiempos.add(String.valueOf(t[i].getTiempo()));
+                                Thread h = new Thread(t[i]);
+                                h.start();
+                                i++;
+                            } else if (ListaPuertosSN.contains(puerto)) {
+                                int pos = ListaPuertosSN.indexOf(puerto);
 
-                            Thread h = new Thread(t[i]);
-                            h.start();
-                            i++;
-                        } else if(ListaPuertos.contains(puerto)) {
-                            int pos = ListaPuertos.indexOf(puerto);
+                                t[pos].setTiempo(tpo);
+                            }
 
-                            t[pos].setTiempo();
+                            for (int l = 0; l < ListaTiemposSN.size(); l++) {
+                                int tiempo = t[l].getTiempo();
+
+                                if (tiempo == 0) {
+                                    ListaConectadosSN.remove(l);
+                                    ListaPuertosSN.remove(l);
+                                    ListaTiemposSN.remove(l);
+                                    i--;
+                                } else {
+                                    ListaTiemposSN.set(l, String.valueOf(tiempo));
+                                }
+                            }
+                        }
+
+                        if (opc.equals("N" + sn.mio.getPuerto())) {
+                            int tpo = 15;
+                            if (!ListaPuertosN.contains(puerto)) {
+                                ListaConectadosN.add(info);
+                                ListaPuertosN.add(puerto);
+
+                                t2[j] = new Tiempo(tpo);
+
+                                ListaTiemposN.add(String.valueOf(t2[j].getTiempo()));
+
+                                Thread h = new Thread(t2[j]);
+                                h.start();
+                                j++;
+                            } else if (ListaPuertosN.contains(puerto)) {
+                                int pos = ListaPuertosN.indexOf(puerto);
+
+                                t2[pos].setTiempo(tpo);
+                            }
+                        }
+
+                        if (!ListaTiemposN.isEmpty()) {
+                            for (int l = 0; l < ListaTiemposN.size(); l++) {
+                                int tiempo = t2[l].getTiempo();
+
+                                if (tiempo == 0) {
+                                    ListaConectadosN.remove(l);
+
+                                    int tam = sn.ServidorRMI.getListaUbicaciones().size();
+                                    int u = 0;
+
+                                    for (int p = 0; p < tam; p++, u++) {
+                                        if (Objects.equals(sn.ServidorRMI.getListaUbicaciones().get(u), ListaPuertosN.get(l))) {
+                                            sn.ServidorRMI.ListaNombres.remove(u);
+                                            sn.ServidorRMI.ListaUbicaciones.remove(u);
+                                            sn.ServidorRMI.ListaMD5.remove(u);
+
+                                            /*String NuevaCarpeta = "Carpetas/" + ListaPuertosN.get(l);
+                                            File carpeta = new File(NuevaCarpeta);
+
+                                            EliminarCarpeta(carpeta);*/
+                                            u--;
+                                        }
+                                    }
+                                    
+                                    /*int nodo = ListaPuertosN.get(l);
+                                    tam = sn.ServidorRMI.getListaConectadosN().size();
+                                    
+                                    for (int p = 0; p < tam; p++) {
+                                        if(sn.ServidorRMI.getListaConectadosN().get(p) == nodo)
+                                            sn.ServidorRMI.ListaNodos.remove(p);
+                                    }*/
+                                    
+                                    sn.ServidorRMI.setNodoEliminado(ListaPuertosN.get(l));
+
+                                    ListaPuertosN.remove(l);
+                                    ListaTiemposN.remove(l);
+                                    sn.ServidorRMI.NC('d');
+                                    j--;
+                                } else {
+                                    ListaTiemposN.set(l, String.valueOf(tiempo));
+                                }
+                            }
                         }
                     }
-
-                    for (int j = 0; j < ListaTiempos.size(); j++) {
-                        int tiempo = t[j].getTiempo();
-
-                        if (tiempo == 0) {
-                            ListaConectados.remove(j);
-                            ListaPuertos.remove(j);
-                            ListaTiempos.remove(j);
-
-                        } else {
-                            ListaTiempos.set(j, String.valueOf(tiempo));
-                        }
-                    }
-
                 }//while
             }
         } catch (Exception e) {
@@ -131,24 +207,42 @@ public class Cliente_multidifusion_SN implements Runnable {
         }//catch
     }
 
-    public static List<String> getListaConectados() {
-        return ListaConectados;
+    public static List<String> getListaConectadosSN() {
+        return ListaConectadosSN;
     }
 
-    public static List<String> getListaTiempos() {
-        return ListaTiempos;
+    public static List<String> getListaTiemposSN() {
+        return ListaTiemposSN;
+    }
+
+    public static List<String> getListaConectadosN() {
+        return ListaConectadosN;
+    }
+
+    public static List<String> getListaTiemposN() {
+        return ListaTiemposN;
+    }
+
+    private void EliminarCarpeta(File carpeta) {
+        File[] archivos = carpeta.listFiles();
+        if (archivos != null) {
+            for (File f : archivos) {
+                EliminarCarpeta(f);
+            }
+        }
+        carpeta.delete();
     }
 
     static class Tiempo implements Runnable {
 
         int t;
 
-        public Tiempo() {
-            this.t = 30;
+        public Tiempo(int t) {
+            this.t = t;
         }
 
-        void setTiempo() {
-            this.t = 30;
+        void setTiempo(int t) {
+            this.t = t;
         }
 
         int getTiempo() {

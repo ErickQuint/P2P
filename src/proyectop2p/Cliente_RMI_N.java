@@ -5,8 +5,12 @@
  */
 package proyectop2p;
 
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -14,14 +18,17 @@ import java.rmi.registry.Registry;
  */
 public class Cliente_RMI_N {
     int pto;
+    FuncionesRMI stub;
+    Registry registry;
     
     public Cliente_RMI_N(int pto) {
         this.pto = pto;
     }
        
-    public void BuscarArchivo(){
+    public void Conectar(){
         try {
-            Registry registry = LocateRegistry.getRegistry(pto);
+            registry = LocateRegistry.getRegistry(pto);
+            stub = (FuncionesRMI) registry.lookup("FuncionesRMI");
             
         } catch (Exception e) {
             System.err.println("Excepción del cliente: " +e.toString());

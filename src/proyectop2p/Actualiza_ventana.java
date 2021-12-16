@@ -5,8 +5,11 @@
  */
 package proyectop2p;
 
+import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 
 /**
@@ -17,12 +20,15 @@ public class Actualiza_ventana implements Runnable {
 
     private VentanaSuperNodo venSN;
     private VentanaNodo venN;
+    Nodo nodo;
     List<String> elementos;
+    List<String> Archivos;
     DefaultListModel modelo = new DefaultListModel();
 
     public Actualiza_ventana(VentanaSuperNodo venSN, VentanaNodo venN) {
         this.venSN = venSN;
         this.venN = venN;
+        Archivos = new ArrayList<>();
     }
 
     @Override
@@ -35,20 +41,40 @@ public class Actualiza_ventana implements Runnable {
         for (;;) {
             try {
                 if (venSN != null) {
-                    elementos = venSN.nodo.ClienteMulticast.getListaConectados();
+                    elementos = venSN.nodo.ClienteMulticast.getListaConectadosSN();
                     actualizar(venSN.ActivosListaSN, elementos);
 
-                    elementos = venSN.nodo.ClienteMulticast.getListaTiempos();
+                    elementos = venSN.nodo.ClienteMulticast.getListaTiemposSN();
                     actualizar(venSN.TiempoSN, elementos);
+
+                    elementos = venSN.nodo.ClienteMulticast.getListaConectadosN();
+                    actualizar(venSN.ActivosListaN, elementos);
+
+                    elementos = venSN.nodo.ClienteMulticast.getListaTiemposN();
+                    actualizar(venSN.TiempoN, elementos);
+                    
+                    int tam = venSN.nodo.ServidorRMI.getNombre().size();
+                    Archivos.clear();
+                    
+                    for (int i = 0; i < tam; i++) {
+                        Archivos.add("Nombre: " + venSN.nodo.ServidorRMI.getNombre().get(i) 
+                                + " Ubicacion: " + venSN.nodo.ServidorRMI.getListaUbicaciones().get(i)
+                                + " MD5: " + venSN.nodo.ServidorRMI.getListaMD5().get(i));
+                    }
+                    
+                    actualizar(venSN.Archivos, Archivos);
                 }
-                
-                if(venN != null){
+
+                if (venN != null) {
                     venN.jLabel1.setText("Conectado al Super Nodo: " + venN.nodo.getPto());
+                    venN.MensajeLabel.setText("<html>" + venN.nodo.getMensaje().mensaje + "</html>");
                 }
 
                 Thread.sleep(500);
             } catch (InterruptedException ie) {
                 ie.printStackTrace();
+            } catch (RemoteException ex) {
+                Logger.getLogger(Actualiza_ventana.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }

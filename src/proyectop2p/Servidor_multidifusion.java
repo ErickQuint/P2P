@@ -21,13 +21,14 @@ import java.util.Iterator;
  *
  * @author erick
  */
-public class Servidor_multidifusion implements Runnable{
+public class Servidor_multidifusion implements Runnable {
+
     int pto;
-    
+
     public Servidor_multidifusion(int pto) {
         this.pto = pto;
     }
-    
+
     @Override
     public void run() {
         anunciar();
@@ -55,8 +56,8 @@ public class Servidor_multidifusion implements Runnable{
             Selector sel = Selector.open();
             cl.register(sel, SelectionKey.OP_WRITE);
 
-            ByteBuffer b = ByteBuffer.allocate(100);
-            b.putInt(pto);
+            String mensaje = pto + " S";
+            ByteBuffer b = ByteBuffer.allocate(6);
 
             while (true) {
                 sel.select();
@@ -67,8 +68,10 @@ public class Servidor_multidifusion implements Runnable{
 
                     if (k.isWritable()) {
                         DatagramChannel ch = (DatagramChannel) k.channel();
-                         b.flip();
-                        ch.send(b, remote);
+                        b.clear();
+                        b.put(mensaje.getBytes());
+                        b.flip();
+                        ch.send(b, remote);                        
                     }
                 }//while
                 Thread.sleep(5000);
